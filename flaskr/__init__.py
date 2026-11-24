@@ -8,8 +8,8 @@ def create_app(test_config=None):
         SECRET_KEY='dev',
         DATABASE_URL='mariadb+pymysql://root:super@localhost/flaskr?charset=utf8mb4',
         MONGO_SERVER='localhost',
-        MONGO_PORT=27017
-
+        MONGO_PORT=27017,
+        MONGO_DATABASE = 'flaskr'
     )
 
     if test_config is None:
@@ -24,12 +24,12 @@ def create_app(test_config=None):
     from . import dbMongo
     dbMongo.init_app(app)
 
-    #from . import auth
-    #app.register_blueprint(auth.bp)
+    from . import auth
+    app.register_blueprint(auth.bp)
 
-    #from . import blog
-    #app.register_blueprint(blog.bp)
-    # app.add_url_rule('/', endpoint='index')
+    from . import blog
+    app.register_blueprint(blog.bp)
+    app.add_url_rule('/', endpoint='index')
 
     # a simple page that says hello
     @app.route('/hello')

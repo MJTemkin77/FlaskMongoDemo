@@ -24,17 +24,21 @@ class post(object):
 def get_engine():
     return current_app.extensions['db_engine']
 
+def get_database():
+    return current_app.extensions['db_database']
+
 def get_db():
     """One Connection per request, stored on g."""
     if 'db' not in g:
-        g.db = get_engine().connect()
+        g.db = get_database()
+                #.connect())
     return g.db
 
 
 def close_db(e=None):
     db = g.pop('db', None)
     if db is not None:
-        db.close()
+        db.client.close()
 
 def init_db():
     engine = get_engine()
@@ -43,10 +47,9 @@ def init_db():
 
 
 def init_app(app):
-    app.extensions['db_engine'] = (
-        MongoClient(
-            app.config['MONGO_SERVER'], app.config['MONGO_PORT'])
-    )
+    client = MongoClient(app.config['MONGO_SERVER'], app.config['MONGO_PORT'])
+    app.extensions['db_engine'] = client
+    app.extensions['db_database'] =client[app.config['MONGO_DATABASE']]
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
 

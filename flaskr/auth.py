@@ -6,9 +6,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from flaskr.db import get_db
 
-from sqlalchemy import text, insert, select
-from sqlalchemy.exc import IntegrityError
-from .db import get_db, user, post
+#from sqlalchemy import text, insert, select
+#from sqlalchemy.exc import IntegrityError
+from .dbMongo import get_db, user, post
+
 from pymongo import MongoClient
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -29,9 +30,10 @@ def register():
 
         if error is None:
             try:
-
-                db.execute(insert(user).values(username=username, password=generate_password_hash(password)))
-                db.commit()
+                db = get_db()
+                db.users.insert_one({'username': username, 'password': generate_password_hash(password)})
+                #db.execute(insert(user).values(username=username, password=generate_password_hash(password)))
+                #db.commit()
             except db.IntegrityError:
                 error = f"User {username} already is already registered."
             else:
@@ -49,8 +51,10 @@ def login():
         password = request.form['password']
         db= get_db()
         error = None
-        row = db.execute(select(user).where(user.c.username == username)).mappings().first()
 
+        row = db.users.find_one({'username': username})
+        #row = db.execute(select(user).where(user.c.username == username)).mappings().first()
+        print(row)
         if row is None:
             error = 'Incorrect username.'
         elif not check_password_hash(row['password'], password):
@@ -58,7 +62,7 @@ def login():
 
         if error is None:
             session.clear()
-            session['user_id'] = row['id']
+            session['user_id'] = row['_id']
             return redirect(url_for('index'))
 
         flash(error)
@@ -71,7 +75,8 @@ def load_logged_in_user():
     if user_id is None:
         g.user = None
     else:
-        g.user = get_db().execute(select(user).where(user.c.id == user_id)).mappings().first()
+        #g.user = get_db().execute(select(user).where(user.c.id == user_id)).mappings().first()
+        g.user = get_db().users.find_one({'user_id':user_id}).mappings().first()
 
 @bp.route('/logout')
 def logout():
