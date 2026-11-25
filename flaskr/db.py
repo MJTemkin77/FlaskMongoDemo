@@ -39,10 +39,12 @@ def get_db():
 
 
 def close_db(e=None):
+   pass
+   '''
     db = g.pop('db', None)
     if db is not None:
         db.close()
-
+    '''
 def init_db():
     engine = get_engine()
     metadata.drop_all(engine)

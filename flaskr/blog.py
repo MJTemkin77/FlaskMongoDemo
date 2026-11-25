@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, url_for
 )
@@ -6,10 +8,12 @@ from werkzeug.exceptions import abort
 
 from flaskr.auth import login_required
 from flaskr.db import get_db
+from bson import ObjectId
 
 from sqlalchemy import text, insert, select, delete as sa_delete, update as sa_update
 from sqlalchemy.exc import IntegrityError
-from .db import get_db, user, post
+from .dbMongo import get_db, user, post
+
 
 bp = Blueprint('blog', __name__)
 
@@ -22,28 +26,20 @@ def getPostExpr(id=None):
 
     Change to SQLAlchemy Core expression
      '''
-    if id is None:
-        return (
-            select(post.c.id, post.c.title, post.c.body, post.c.created,
-                   post.c.author_id, user.c.username)
-            .select_from(post.join(user, post.c.author_id == user.c.id))
-            .order_by(post.c.created.desc())
-        )
-    else:
-        return (
-            select(post.c.id, post.c.title, post.c.body, post.c.created,
-                   post.c.author_id, user.c.username)
-            .select_from(post.join(user, post.c.author_id == user.c.id))
-            .where(post.c.id == id)
-            .order_by(post.c.created.desc())
-        )
+    findExpr = {"_id":id}
+    if (id is None):
+        findExpr = {}
+    projectExpr = {"_id":1, "title":1, "body":1, "created":1, "BlogAuthor":1}
+    orderExpr = {"created":-1}
+    return findExpr, projectExpr, orderExpr
 
 
 
 @bp.route('/')
 def index():
     db = get_db()
-    posts = db.execute(getPostExpr()).mappings().all()
+    findExpr, projectExpr, orderExpr = getPostExpr()
+    posts = db.posts.find(findExpr, projectExpr).sort(orderExpr).to_list()
 
 
     return render_template('blog/index.html', posts=posts)
@@ -64,28 +60,34 @@ def create():
             flash(error)
         else:
             db = get_db()
-            db.execute(insert(post).values(title=title, body=body, author_id =g.user['id']))
-            db.commit()
+            userDoc = db.users.find_one({'_id': g.user['_id']})
+            db.posts.insert_one({'title': title, 'body': body,'created' : datetime.now(), 'BlogAuthor': {'Name':userDoc['username'], 'Id':userDoc['_id'] }})
             return redirect(url_for('blog.index'))
 
     return render_template('blog/create.html')
 
 
 def get_post(id, check_author=True):
-    post = get_db().execute(getPostExpr(id)).mappings().first()
+    db = get_db()
+    findExpr, projectExpr, _ = getPostExpr(id)
+    post = db.posts.find_one(findExpr, projectExpr)
 
     if post is None:
         abort(404,f'Post with id {id} not found')
 
-    if check_author and post['author_id'] != g.user['id']:
+    if check_author and post['BlogAuthor']['Id'] != g.user['_id']:
         abort(403)
 
     return post
 
-@bp.route('/<int:id>/update', methods=('GET', 'POST'))
+@bp.route('/<string:id>/update', methods=('GET', 'POST'))
 @login_required
 def update(id):
-    updt_post = get_post(id)
+    # The reason to store the ObjectId of id to a variable
+    # is so that you can step into the get_post function without having
+    # to step through the ObjectId function code.
+    oid = ObjectId(id)
+    updt_post = get_post(oid)
 
     if request.method == 'POST':
         title = request.form['title']
@@ -99,18 +101,20 @@ def update(id):
             flash(error)
         else:
             db = get_db()
-            db.execute(sa_update(post).where(post.c.id == id).values(title=title, body=body))
-            db.commit()
+            db.posts.update_one({'_id': oid}, {'$set': {'title': title, 'body': body}})
             return redirect(url_for('blog.index'))
 
     return render_template('blog/update.html', post=updt_post)
 
-@bp.route('/<int:id>/delete', methods=('POST',))
+@bp.route('/<string:id>/delete', methods=('POST',))
 @login_required
 def delete(id):
     db = get_db()
-    db.execute(sa_delete(post).where(post.c.id == id))
-    db.commit()
+    # The reason to store the ObjectId of id to a variable
+    # is so that you can step into the get_post function without having
+    # to step through the ObjectId function code.
+    oid = ObjectId(id)
+    db.posts.delete_one({'_id': oid})
     return redirect(url_for('blog.index'))
 
 

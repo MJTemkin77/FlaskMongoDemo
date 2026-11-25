@@ -6,9 +6,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from flaskr.db import get_db
 
-#from sqlalchemy import text, insert, select
-#from sqlalchemy.exc import IntegrityError
 from .dbMongo import get_db, user, post
+from bson import ObjectId
 
 from pymongo import MongoClient
 
@@ -62,7 +61,7 @@ def login():
 
         if error is None:
             session.clear()
-            session['user_id'] = row['_id']
+            session['user_id'] = str(row['_id'])
             return redirect(url_for('index'))
 
         flash(error)
@@ -76,7 +75,7 @@ def load_logged_in_user():
         g.user = None
     else:
         #g.user = get_db().execute(select(user).where(user.c.id == user_id)).mappings().first()
-        g.user = get_db().users.find_one({'user_id':user_id}).mappings().first()
+        g.user = get_db().users.find_one({'_id':ObjectId(user_id)})
 
 @bp.route('/logout')
 def logout():
