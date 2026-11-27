@@ -4,9 +4,9 @@ from flask import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from flaskr.db import get_db
 
-from .dbMongo import get_db, user, post
+
+from flaskr.dbMongo import get_db
 from bson import ObjectId
 
 from pymongo import MongoClient
@@ -43,8 +43,8 @@ def register():
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
-    #breakpoint()
-    print("login() reached", __file__)
+    breakpoint()
+    #print("login() reached", __file__)
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
