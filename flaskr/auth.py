@@ -27,7 +27,6 @@ def register():
 
         if error is None:
             try:
-                db = get_db()
                 db.users.insert_one({'username': username, 'password': generate_password_hash(password)})
             except db.IntegrityError:
                 error = f"User {username} already is already registered."
