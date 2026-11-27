@@ -6,7 +6,6 @@ def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
         SECRET_KEY='dev',
-        DATABASE_URL='mariadb+pymysql://root:super@localhost/flaskr?charset=utf8mb4',
         MONGO_SERVER='localhost',
         MONGO_PORT=27017,
         MONGO_DATABASE = 'flaskr'

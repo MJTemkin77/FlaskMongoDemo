@@ -9,8 +9,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flaskr.dbMongo import get_db
 from bson import ObjectId
 
-from pymongo import MongoClient
-
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 
@@ -31,8 +29,6 @@ def register():
             try:
                 db = get_db()
                 db.users.insert_one({'username': username, 'password': generate_password_hash(password)})
-                #db.execute(insert(user).values(username=username, password=generate_password_hash(password)))
-                #db.commit()
             except db.IntegrityError:
                 error = f"User {username} already is already registered."
             else:
@@ -43,8 +39,6 @@ def register():
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
-    breakpoint()
-    #print("login() reached", __file__)
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -52,7 +46,6 @@ def login():
         error = None
 
         row = db.users.find_one({'username': username})
-        #row = db.execute(select(user).where(user.c.username == username)).mappings().first()
         print(row)
         if row is None:
             error = 'Incorrect username.'
@@ -74,7 +67,6 @@ def load_logged_in_user():
     if user_id is None:
         g.user = None
     else:
-        #g.user = get_db().execute(select(user).where(user.c.id == user_id)).mappings().first()
         g.user = get_db().users.find_one({'_id':ObjectId(user_id)})
 
 @bp.route('/logout')

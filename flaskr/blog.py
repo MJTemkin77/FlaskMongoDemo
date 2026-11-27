@@ -9,23 +9,13 @@ from werkzeug.exceptions import abort
 from flaskr.auth import login_required
 
 from bson import ObjectId
-
-from sqlalchemy import text, insert, select, delete as sa_delete, update as sa_update
-from sqlalchemy.exc import IntegrityError
-from .dbMongo import get_db, user, post
+from .dbMongo import get_db
 
 
 bp = Blueprint('blog', __name__)
 
 def getPostExpr(id=None):
-    '''
-     (db.execute(
-     text('select p.id, title, body, created, author_id, username '
-                    ' FROM post p JOIN user u ON p.author_id = u.id '
-                    ' ORDER BY created DESC'))
 
-    Change to SQLAlchemy Core expression
-     '''
     findExpr = {"_id":id}
     if (id is None):
         findExpr = {}
